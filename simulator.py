@@ -1,6 +1,4 @@
 import random
-from matplotlib import pyplot as plt
-import matplotlib
 
 hard_strategy = {8: ["H", "H", "H", "H", "H", "H", "H", "H", "H", "H"], 
                  9: ["H", "Dh", "Dh", "Dh", "Dh", "H", "H", "H", "H", "H"],
@@ -155,96 +153,108 @@ def play_blackjack(player_hand, dealer_hand, deck):
 
 
 
-def simulate(balance=5000000, max_trials=1000000, initial_bet=10):
-    # Initialize bet and play 100 games or until the AI can no longer bet
-    all_balances = [balance]
-    bet = initial_bet
-    total_games = 0
-    total_won = 0
-    total_lost = 0
-    peak_balance = 0
+def simulate(num_sims=10, initial_balance=500, max_balance=1000, max_trials=100, initial_bet=10, print_ = False):
+    for i in range(num_sims):
 
-    while total_games < max_trials and balance >= bet:
-        total_games += 1
-        print(f"\n\n==== Game {total_games} - Balance: ${balance} - Current Bet: ${bet} ====")
-
-        # Shuffle the deck
-        deck = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'] * 4
-        random.shuffle(deck)
-
-        # Initialize hands for the player and the dealer
-        player_hand = [deck.pop(), deck.pop()]
-        dealer_hand = [deck.pop(), deck.pop()]
-
-        print("\nPlayer Hand:", player_hand)
-        print("Dealer Card:", dealer_hand[0])
-
-        if calculate_hand_value(player_hand) == 21:
-            total_won += bet * 1.5
-            balance += bet * 1.5
-            bet = initial_bet
+        # Initialize bet and play 100 games or until the AI can no longer bet
+        bet = initial_bet
+        total_games = 0
+        total_won = 0
+        number_won = 0
+        number_lost = 0
+        peak_balance = 0
+        balance = initial_balance
+        all_balances = [balance]
         
-        else:
-
-            # Player's turn
-            final_hand_values = play_blackjack(player_hand, dealer_hand, deck)
-
-            # Dealer's turn
-            while calculate_hand_value(dealer_hand) < 17 or (calculate_hand_value(dealer_hand) == 17 and 'A' in dealer_hand):
-                dealer_hand.append(deck.pop())
-
-            print("\nPlayer Hand Values:", final_hand_values)
-            print("Dealer Hand Value:", calculate_hand_value(dealer_hand))
-            print()
-
-            total_result = 0
-            for hand_value in final_hand_values:    
-                      
-                # Determine the winner
-                if hand_value > 21:
-                    print("Bust! You lose.               ->         -" + str(bet))
-                    total_result -= bet
-
-                elif calculate_hand_value(dealer_hand) > 21:
-                    print("Dealer bust! You win!         ->         +" + str(bet))
-                    total_result += bet
-
-                elif hand_value > calculate_hand_value(dealer_hand):
-                    print("You win!                      ->         +" + str(bet))
-                    total_result += bet
-
-                elif hand_value == calculate_hand_value(dealer_hand):
-                    print("It's a tie!                   ->         No change")
-
-                else:
-                    print("Dealer Had Higher! You lose!  ->         -" + str(bet))
-                    total_result -= bet
-
-            balance += total_result
-            total_won += total_result
-
-            if balance > peak_balance:
-                peak_balance = balance
-            
-            if total_result > 0:
+        while total_games < max_trials and balance >= bet and balance < max_balance:
+            total_games += 1
+            if print_:
+                print(f"\n\n==== Game {total_games} - Balance: ${balance} - Current Bet: ${bet} ====")
+    
+            # Shuffle the deck
+            deck = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'] * 4 * 4
+            random.shuffle(deck)
+    
+            # Initialize hands for the player and the dealer
+            player_hand = [deck.pop(), deck.pop()]
+            dealer_hand = [deck.pop(), deck.pop()]
+    
+            if print_:
+                print("\nPlayer Hand:", player_hand)
+                print("Dealer Card:", dealer_hand[0])
+    
+            if calculate_hand_value(player_hand) == 21:
+                total_won += bet * 1.5
+                balance += bet * 1.5
                 bet = initial_bet
-            elif total_result < 0:
-                bet *= 2
-
-            all_balances.append(balance)
-
-    print(f"\nSimulation Summary:")
-    print(f"Total Games Played: {total_games}")
-    print(f"Final Balance: ${balance}")
-    print(f"Total Amount Won/Lost: ${total_won}")
-    print(f"Peak Balance: ${peak_balance}")
-
-    print(total_won/total_games)
-    print((total_games - total_won - total_lost)/total_games)
-    print(total_lost/total_games)
-
-
+            
+            else:
+    
+                # Player's turn
+                final_hand_values = play_blackjack(player_hand, dealer_hand, deck)
+    
+                # Dealer's turn
+                while calculate_hand_value(dealer_hand) < 17 or (calculate_hand_value(dealer_hand) == 17 and 'A' in dealer_hand):
+                    dealer_hand.append(deck.pop())
+    
+                if print_:
+                    print("\nPlayer Hand Values:", final_hand_values)
+                    print("Dealer Hand Value:", calculate_hand_value(dealer_hand))
+                    print()
+    
+                total_result = 0
+                for hand_value in final_hand_values:    
+                          
+                    # Determine the winner
+                    if hand_value > 21:
+                        if print_:
+                            print("Bust! You lose.               ->         -" + str(bet))
+                        total_result -= bet
+    
+                    elif calculate_hand_value(dealer_hand) > 21:
+                        if print_:
+                            print("Dealer bust! You win!         ->         +" + str(bet))
+                        total_result += bet
+    
+                    elif hand_value > calculate_hand_value(dealer_hand):
+                        if print_:
+                            print("You win!                      ->         +" + str(bet))
+                        total_result += bet
+    
+                    elif hand_value == calculate_hand_value(dealer_hand):
+                        if print_:
+                            print("It's a tie!                   ->         No change")
+    
+                    else:
+                        if print_:
+                            print("Dealer Had Higher! You lose!  ->         -" + str(bet))
+                        total_result -= bet
+    
+                balance += total_result
+                total_won += total_result
+    
+                if balance > peak_balance:
+                    peak_balance = balance
+                
+                if total_result > 0:
+                    bet = initial_bet
+                    number_won += 1
+                elif total_result < 0:
+                    bet = 2*bet
+                    number_lost += 1
+    
+                all_balances.append(balance)
+    
+        
+        # print(f"\nSimulation Summary:", i+1)
+        # print(f"Total Games Played: {total_games}")
+        # print(f"Final Balance: ${balance}")
+        # print(f"Total Amount Won/Lost: ${total_won}")
+        # print(f"Peak Balance: ${peak_balance}")
+        print(f"Win %: {number_won/total_games}")
+        print(f"Push %: {(total_games - number_won - number_lost)/total_games}")
+        print(f"Lost %: {number_lost/total_games}")    
 
 
 if __name__ == "__main__":
-    simulate()
+    simulate(1, 500000, 1000000, 10000, 10, False)
