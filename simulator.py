@@ -46,21 +46,31 @@ def calculate_hand_value(hand):
         value -= 10
         num_aces -= 1
 
-    return value
+    soft = False
+    if num_aces > 0:
+        soft = True
+
+    return value, soft
 
 
 
 def make_ai_decision(player_hand, dealer_upcard):
 
     dealer_value = get_card_value(dealer_upcard)
-    player_value = calculate_hand_value(player_hand)
+    player_value, soft = calculate_hand_value(player_hand)
     # print(player_hand)
     # print(player_value)
 
-    if player_hand[0] == player_hand[1] and player_hand[0] in split_strategy.keys():
+    if player_value > 21:
+        return "bust"
+
+    if player_value == 21:
+        return "S"
+
+    elif player_hand[0] == player_hand[1] and player_hand[0] in split_strategy.keys():
         return split_strategy[player_hand[0]][dealer_value - 2]
 
-    elif "A" in player_hand:
+    elif soft:
         return soft_strategy[player_value][dealer_value - 2]
 
     else:
@@ -76,58 +86,50 @@ def make_ai_decision(player_hand, dealer_upcard):
 
 
 def play_blackjack_recursive(player_hand, dealer_hand, deck):
-    if calculate_hand_value(player_hand) > 20:
-        return [calculate_hand_value(player_hand)]
-    result = make_ai_decision(player_hand, dealer_hand[0])
 
-    if result == "Dh":
-        # Double down if possible, finish the hand
-        if len(player_hand) == 2:
-            player_hand.append(deck.pop())
-            return [calculate_hand_value(player_hand)]
-        else:
-            return [calculate_hand_value(player_hand)]
+    if calculate_hand_value(player_hand)[0] > 20:
+        return [calculate_hand_value(player_hand)[0]]
 
-    elif result == "Ds":
-        # Double down if possible, finish the hand
-        if len(player_hand) == 2:
-            player_hand.append(deck.pop())
-            return [calculate_hand_value(player_hand)]
-        else:
-            return [calculate_hand_value(player_hand)]
+    current_hand = player_hand
 
-    elif result == "S":
-        # Stand and end player turn
-        return [calculate_hand_value(player_hand)]
+    while True:
+        result = make_ai_decision(current_hand, dealer_hand[0])
 
-    elif result == "H":
-        # Hit, pop a card from the deck and add to hand
-        player_hand.append(deck.pop())
+        if result == "bust":
+            return [calculate_hand_value(current_hand)[0]]
 
-        # Check if the total cards in hand are greater than or equal to 5
-        # if len(player_hand) >= 5:
-        #     return [calculate_hand_value(player_hand)]
+        elif result == "Dh":
+            # Double down if possible, finish the hand
+            if len(current_hand) == 2:
+                current_hand.append(deck.pop())
+                return [calculate_hand_value(current_hand)[0]]
+            else:
+                current_hand.append(deck.pop())
 
-        # Recursively continue with the same hand
-        return play_blackjack_recursive(player_hand, dealer_hand, deck)
+        elif result == "Ds":
+            # Double down if possible, finish the hand
+            if len(current_hand) == 2:
+                current_hand.append(deck.pop())
+                return [calculate_hand_value(current_hand)[0]]
+            else:
+                return [calculate_hand_value(current_hand)[0]]
 
-    elif result == "P":
-        # Split the two cards into two hands, deal a new card to each
-        hand1 = [player_hand[0], deck.pop()]
-        hand2 = [player_hand[1], deck.pop()]
+        elif result == "S":
+            # Stand and end player turn
+            return [calculate_hand_value(current_hand)[0]]
 
-        # Recursively continue with each split hand
-        result1 = play_blackjack_recursive(hand1, dealer_hand, deck)
-        result2 = play_blackjack_recursive(hand2, dealer_hand, deck)
+        elif result == "H":
+            # Hit, pop a card from the deck and add to hand
+            current_hand.append(deck.pop())
 
-        # Combine the results of both hands
-        return result1 + result2
+            # Check if the total cards in hand are greater than or equal to 5
+            # if len(player_hand) >= 5:
+            #     return [calculate_hand_value(player_hand)[0]]
 
-    elif result == "Ph":
-        # Split if double down after split is possible, otherwise hit and continue
-        if len(player_hand) == 2:
-            hand1 = [player_hand[0], deck.pop()]
-            hand2 = [player_hand[1], deck.pop()]
+        elif result == "P":
+            # Split the two cards into two hands, deal a new card to each
+            hand1 = [current_hand[0], deck.pop()]
+            hand2 = [current_hand[1], deck.pop()]
 
             # Recursively continue with each split hand
             result1 = play_blackjack_recursive(hand1, dealer_hand, deck)
@@ -135,9 +137,22 @@ def play_blackjack_recursive(player_hand, dealer_hand, deck):
 
             # Combine the results of both hands
             return result1 + result2
-        else:
-            player_hand.append(deck.pop())
-            return play_blackjack_recursive(player_hand, dealer_hand, deck)
+
+        elif result == "Ph":
+            # Split if double down after split is possible, otherwise hit and continue
+            if len(current_hand) == 2:
+                hand1 = [current_hand[0], deck.pop()]
+                hand2 = [current_hand[1], deck.pop()]
+
+                # Recursively continue with each split hand
+                result1 = play_blackjack_recursive(hand1, dealer_hand, deck)
+                result2 = play_blackjack_recursive(hand2, dealer_hand, deck)
+
+                # Combine the results of both hands
+                return result1 + result2
+            else:
+                current_hand.append(deck.pop())
+
 
 def play_blackjack(player_hand, dealer_hand, deck):
     # Start the recursive process for the main hand
@@ -147,114 +162,88 @@ def play_blackjack(player_hand, dealer_hand, deck):
     return results
 
 
-
-
-
-
-
-
-def simulate(num_sims=10, initial_balance=500, max_balance=1000, max_trials=100, initial_bet=10, print_ = False):
-    for i in range(num_sims):
-
-        # Initialize bet and play 100 games or until the AI can no longer bet
-        bet = initial_bet
-        total_games = 0
-        total_won = 0
-        number_won = 0
-        number_lost = 0
-        peak_balance = 0
-        balance = initial_balance
-        all_balances = [balance]
+def simulate(num_sims=10, print_ = False):
+     # Initialize bet and play 100 games or until the AI can no longer bet
+    bet = 10
+    balance = 0
+    number_won = 0
+    number_lost = 0
         
-        while total_games < max_trials and balance >= bet and balance < max_balance:
-            total_games += 1
+    for i in range(num_sims):
+        if print_:
+            print(f"\n\n==== Game {i + 1} - Balance: ${balance} - Current Bet: ${bet} ====")
+
+        # Shuffle the deck
+        deck = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'] * 4 * 4
+        random.shuffle(deck)
+
+        # Initialize hands for the player and the dealer
+        player_hand = [deck.pop(), deck.pop()]
+        dealer_hand = [deck.pop(), deck.pop()]
+
+        if calculate_hand_value(player_hand)[0] == 21:
+            balance += bet * 1.5
+        
+        else:
+
+            # Player's turn
+            final_hand_values = play_blackjack(player_hand, dealer_hand, deck)
+
+            # Dealer's turn
+            new_dealer_hand = dealer_hand
+            while calculate_hand_value(dealer_hand)[0] < 17 or (calculate_hand_value(dealer_hand)[0] == 17 and 'A' in dealer_hand):
+                new_dealer_hand.append(deck.pop())
+
             if print_:
-                print(f"\n\n==== Game {total_games} - Balance: ${balance} - Current Bet: ${bet} ====")
-    
-            # Shuffle the deck
-            deck = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'] * 4 * 4
-            random.shuffle(deck)
-    
-            # Initialize hands for the player and the dealer
-            player_hand = [deck.pop(), deck.pop()]
-            dealer_hand = [deck.pop(), deck.pop()]
-    
-            if print_:
-                print("\nPlayer Hand:", player_hand)
+                print("Player Hand:", player_hand)
                 print("Dealer Card:", dealer_hand[0])
-    
-            if calculate_hand_value(player_hand) == 21:
-                total_won += bet * 1.5
-                balance += bet * 1.5
-                bet = initial_bet
-            
-            else:
-    
-                # Player's turn
-                final_hand_values = play_blackjack(player_hand, dealer_hand, deck)
-    
-                # Dealer's turn
-                while calculate_hand_value(dealer_hand) < 17 or (calculate_hand_value(dealer_hand) == 17 and 'A' in dealer_hand):
-                    dealer_hand.append(deck.pop())
-    
-                if print_:
-                    print("\nPlayer Hand Values:", final_hand_values)
-                    print("Dealer Hand Value:", calculate_hand_value(dealer_hand))
-                    print()
-    
-                total_result = 0
-                for hand_value in final_hand_values:    
-                          
-                    # Determine the winner
-                    if hand_value > 21:
-                        if print_:
-                            print("Bust! You lose.               ->         -" + str(bet))
-                        total_result -= bet
-    
-                    elif calculate_hand_value(dealer_hand) > 21:
-                        if print_:
-                            print("Dealer bust! You win!         ->         +" + str(bet))
-                        total_result += bet
-    
-                    elif hand_value > calculate_hand_value(dealer_hand):
-                        if print_:
-                            print("You win!                      ->         +" + str(bet))
-                        total_result += bet
-    
-                    elif hand_value == calculate_hand_value(dealer_hand):
-                        if print_:
-                            print("It's a tie!                   ->         No change")
-    
-                    else:
-                        if print_:
-                            print("Dealer Had Higher! You lose!  ->         -" + str(bet))
-                        total_result -= bet
-    
-                balance += total_result
-                total_won += total_result
-    
-                if balance > peak_balance:
-                    peak_balance = balance
-                
-                if total_result > 0:
-                    bet = initial_bet
-                    number_won += 1
-                elif total_result < 0:
-                    bet = 2*bet
+
+            if print_:
+                print("Player Hand Values:", final_hand_values)
+                print("Dealer Hand Value:", calculate_hand_value(dealer_hand)[0])
+
+            total_result = 0
+            for hand_value in final_hand_values:    
+                        
+                # Determine the winner
+                if hand_value > 21:
+                    if print_:
+                        print("Bust! You lose: -$" + str(bet))
+                    balance -= bet
                     number_lost += 1
-    
-                all_balances.append(balance)
-    
+
+                elif calculate_hand_value(dealer_hand)[0] > 21:
+                    if print_:
+                        print("Dealer bust! You win: +$" + str(bet))
+                    balance += bet
+                    number_won += 1
+
+                elif hand_value > calculate_hand_value(dealer_hand)[0]:
+                    if print_:
+                        print("You win: +$" + str(bet))
+                    balance += bet
+                    number_won += 1
+
+                elif hand_value == calculate_hand_value(dealer_hand)[0]:
+                    if print_:
+                        print("It's a tie: No change")                        
+
+                else:
+                    if print_:
+                        print("Dealer Had Higher! You lose: -$" + str(bet))
+                    balance -= bet 
+                    number_lost += 1   
         
         # print(f"\nSimulation Summary:", i+1)
         # print(f"Total Games Played: {total_games}")
         # print(f"Final Balance: ${balance}")
         # print(f"Total Amount Won/Lost: ${total_won}")
         # print(f"Peak Balance: ${peak_balance}")
-        print(f"Win %: {number_won/total_games}")
-        print(f"Push %: {(total_games - number_won - number_lost)/total_games}")
-        print(f"Lost %: {number_lost/total_games}")    
+    print(f"\nWin %: {number_won/num_sims}")
+    print(f"Push %: {(num_sims - number_won - number_lost)/num_sims}")
+    print(f"Lost %: {number_lost/num_sims}")    
+    print(f"Final Balance : ${balance}")
 
 
 if __name__ == "__main__":
-    simulate(1, 500000, 1000000, 10000, 10, False)
+    simulate(10, True)
