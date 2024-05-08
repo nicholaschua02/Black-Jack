@@ -1,4 +1,7 @@
+#%%
+
 import random
+import matplotlib.pyplot as plt
 
 hard_strategy = {8: ["H", "H", "H", "H", "H", "H", "H", "H", "H", "H"], 
                  9: ["H", "Dh", "Dh", "Dh", "Dh", "H", "H", "H", "H", "H"],
@@ -165,9 +168,9 @@ def play_blackjack(player_hand, dealer_hand, deck):
 def simulate(num_sims=10, print_ = False):
      # Initialize bet and play 100 games or until the AI can no longer bet
     bet = 10
-    balance = 0
-    number_won = 0
-    number_lost = 0
+    balance = [0]
+    winnings = 0
+    losses = 0
         
     for i in range(num_sims):
         if print_:
@@ -182,7 +185,8 @@ def simulate(num_sims=10, print_ = False):
         dealer_hand = [deck.pop(), deck.pop()]
 
         if calculate_hand_value(player_hand)[0] == 21:
-            balance += bet * 1.5
+            winnings += bet * 1.5
+            balance.append(balance[-1] + bet * 1.5)
         
         else:
 
@@ -209,41 +213,46 @@ def simulate(num_sims=10, print_ = False):
                 if hand_value > 21:
                     if print_:
                         print("Bust! You lose: -$" + str(bet))
-                    balance -= bet
-                    number_lost += 1
+                    balance.append(balance[-1] - bet)
+                    losses += bet
 
                 elif calculate_hand_value(dealer_hand)[0] > 21:
                     if print_:
                         print("Dealer bust! You win: +$" + str(bet))
-                    balance += bet
-                    number_won += 1
+                    balance.append(balance[-1] + bet)
+                    winnings += bet
 
                 elif hand_value > calculate_hand_value(dealer_hand)[0]:
                     if print_:
                         print("You win: +$" + str(bet))
-                    balance += bet
-                    number_won += 1
+                    balance.append(balance[-1] + bet)
+                    winnings += bet
 
                 elif hand_value == calculate_hand_value(dealer_hand)[0]:
                     if print_:
-                        print("It's a tie: No change")                        
+                        print("It's a tie: No change")
+                    balance.append(balance[-1])                 
 
                 else:
                     if print_:
                         print("Dealer Had Higher! You lose: -$" + str(bet))
-                    balance -= bet 
-                    number_lost += 1   
+                    balance.append(balance[-1] - bet)
+                    losses += bet
         
         # print(f"\nSimulation Summary:", i+1)
         # print(f"Total Games Played: {total_games}")
         # print(f"Final Balance: ${balance}")
         # print(f"Total Amount Won/Lost: ${total_won}")
         # print(f"Peak Balance: ${peak_balance}")
-    print(f"\nWin %: {number_won/num_sims}")
-    print(f"Push %: {(num_sims - number_won - number_lost)/num_sims}")
-    print(f"Lost %: {number_lost/num_sims}")    
+    print(f"\nWin %: {winnings/(bet * num_sims)}")
+    print(f"Push %: {(bet * num_sims - winnings - losses)/(bet * num_sims)}")
+    print(f"Lost %: {losses/(bet * num_sims)}")    
     print(f"Final Balance : ${balance}")
+
+    plt.plot(balance)
+    plt.ylabel('some numbers')
+    plt.show()
 
 
 if __name__ == "__main__":
-    simulate(10, True)
+    simulate(1000, False)
