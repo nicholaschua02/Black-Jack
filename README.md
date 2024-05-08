@@ -1,2 +1,2 @@
 # Black-Jack
-Card Counting Simulator
+Black Jack simulator - will incorporate card counting
