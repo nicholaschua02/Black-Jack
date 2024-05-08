@@ -256,3 +256,4 @@ def simulate(num_sims=10, print_ = False):
 
 if __name__ == "__main__":
     simulate(1000, False)
+# %%
